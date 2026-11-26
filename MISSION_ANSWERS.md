@@ -109,14 +109,38 @@ Các service là `agent`, `redis`, `qdrant`, `nginx`. Agent dùng Redis cho cach
 
 ## Part 3: Cloud Deployment
 
-Phần Part 3 sẽ deploy agent của Part 6 sau giai đoạn hoàn thiện và kiểm tra `PASS 12/12`.
+### Exercise 3.1 / 3.2: Deploy (nền tảng chính: Render)
 
-Các nền tảng cần ghi:
+Deploy agent Part 6 trong `06-lab-complete/` bằng Blueprint `06-lab-complete/render.yaml` (web service + Key Value Redis). Chi tiết và kết quả 4 lệnh tự kiểm ở CP6: xem [DEPLOYMENT.md](DEPLOYMENT.md).
 
-- Railway hoặc Render: URL public, deployment dashboard, Redis, API key.
-- Railway: `railway.toml`, builder Dockerfile.
-- Render: `render.yaml`, health check `/health`, secret dùng `generateValue` hoặc `sync: false`.
-- Cloud Run: pipeline đọc `cloudbuild.yaml` và `service.yaml` sẽ xây Docker image, đẩy lên registry, triển khai revision Cloud Run rồi nhận traffic.
+- Public URL: _(điền sau khi deploy)_
+- `/health` → ___ · `/ready` → ___ · `/ask` không key → ___ · `/ask` có key → ___
+
+### So sánh `railway.toml` và `render.yaml` (nền tảng còn lại)
+
+Cả hai file đều build agent từ cùng một `06-lab-complete/Dockerfile` và cùng dùng `/health` làm health check. Khác nhau ở chỗ mỗi file mô tả được bao nhiêu phần của hệ thống:
+
+| Khía cạnh | `railway.toml` | `render.yaml` | Vì sao khác |
+|---|---|---|---|
+| Phạm vi | Chỉ cấu hình **một service** (build + deploy) | **Blueprint (IaC)** khai báo cả web service lẫn Redis (`type: keyvalue`) | Railway thêm Redis bằng plugin/service trên dashboard, ngoài file; Render cho dựng cả hạ tầng từ một file |
+| Build | `builder = "DOCKERFILE"`, `dockerfilePath = "Dockerfile"` | `runtime: docker`, `rootDir: 06-lab-complete`, `dockerfilePath`, `dockerContext` | `railway.toml` nằm trong thư mục được `railway up`, nên đường dẫn tính từ đó; Render đọc Blueprint từ repo nên phải chỉ ra `rootDir` |
+| Health check | `healthcheckPath = "/health"`, `healthcheckTimeout = 30` | `healthCheckPath: /health` | Giống nhau về ý nghĩa; Railway cho chỉnh timeout ngay trong file |
+| Restart | `restartPolicyType = "ON_FAILURE"`, tối đa 3 lần | Không khai báo; Render tự restart theo health check | Railway cho phép cấu hình chính sách restart, Render quản lý thay |
+| Biến môi trường và secret | Không có trong file: `AGENT_API_KEY`, `REDIS_URL` đặt bằng `railway variables` hoặc dashboard (Redis plugin cấp sẵn `REDIS_URL`) | Có trong file nhưng không ghi giá trị secret: `AGENT_API_KEY` dùng `generateValue: true`, `REDIS_URL` lấy bằng `fromService` (connection string của Key Value) | Render nối các service trong Blueprint với nhau nên tham chiếu được; với Railway, để env ngoài file giúp không lộ secret vào git |
+| Gói và vùng | Không khai báo (chọn trên dashboard) | `plan: free`, `region: oregon` cho cả hai service | Blueprint mô tả cả chi phí và vị trí hạ tầng |
+| `PORT` | Railway cấp `PORT`; app đọc `${PORT:-8000}` | Render cấp `PORT`; app đọc cùng biến | Cả hai nền tảng tự cấp port, nên app không được cố định 8000 |
+
+Kết luận: `railway.toml` là file cấu hình deploy gọn cho một service. `render.yaml` là Infrastructure as Code, dựng lại được toàn bộ stack (agent + Redis + nối env) từ repo. Đổi lại, Render bản Free có cold start khoảng 1 phút và Key Value không lưu dữ liệu khi restart.
+
+### Exercise 3.3: Pipeline CI/CD Cloud Run
+
+Đọc `03-cloud-deployment/production-cloud-run/cloudbuild.yaml` và `service.yaml`:
+
+1. **Trigger:** push lên `main` chạy Cloud Build. Bước `test` cài `requirements.txt` + `pytest` trong `python:3.11-slim` và chạy `pytest tests/`; test fail thì pipeline dừng.
+2. **Build:** `docker build` gắn 2 tag `ai-agent:$COMMIT_SHA` và `:latest`, dùng `--cache-from :latest` để tái dùng layer cache.
+3. **Push:** đẩy mọi tag lên Container Registry `gcr.io/$PROJECT_ID/ai-agent`.
+4. **Deploy:** `gcloud run deploy` image theo `$COMMIT_SHA` (nên rollback được về đúng commit) lên `asia-southeast1`. Cấu hình min 1 / max 10 instance, 512Mi, 1 CPU, timeout 60s. Env `ENVIRONMENT=production`, secret lấy từ Secret Manager bằng `--set-secrets`.
+5. **`service.yaml`** mô tả cùng service dạng IaC (Knative), áp dụng bằng `gcloud run services replace`. Thêm `containerConcurrency: 80`, `livenessProbe` gọi `/health`, `startupProbe` gọi `/ready` (instance chỉ nhận traffic khi sẵn sàng). `AGENT_API_KEY` và `OPENAI_API_KEY` dùng `secretKeyRef`, không hardcode.
 
 ---
 
