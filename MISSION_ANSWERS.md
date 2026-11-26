@@ -1,9 +1,5 @@
 # Day 14 Lab - Mission Answers
 
-**Họ tên:** ____________________
-
-**MSSV:** ____________________
-
 ## Part 1: Localhost vs Production
 
 ### Exercise 1.1: Anti-patterns found
@@ -317,3 +313,13 @@ Ghi lại lần dùng AI cho giai đoạn này:
 - AI hỗ trợ xử lý môi trường WSL và chạy checker; sau khi người dùng bật Docker Desktop WSL integration, Docker daemon đã truy cập được từ Ubuntu.
 - Tôi tự kiểm tra: full `python check_production_ready.py` chạy từ WSL bằng Python 3.11 cô lập trong `/tmp`, không đổi manifest project. Kết quả `PASS 12/12` và `41/41 checks passed`; Docker image 238 MB, SIGTERM khi request đang chạy trả 200 và process exit code 0, `docker stop` exit code 0 trong 0.8 giây.
 - Đã xóa môi trường Python/dependencies tạm trong `/tmp`; checker không để lại container test đang chạy.
+
+### Part 3, Part 7 và deploy (dùng Claude Code)
+
+- Hỏi: rà mức độ hoàn thiện repo so với RUBRIC/SUBMISSION; viết so sánh `railway.toml` / `render.yaml` và mô tả pipeline Cloud Run (Exercise 3.3).
+- AI gợi ý: bảng so sánh và 5 bước pipeline, đọc trực tiếp từ `06-lab-complete/railway.toml`, `render.yaml`, `cloudbuild.yaml`, `service.yaml`. Tôi đọc lại và đối chiếu từng dòng với các file đó.
+- Hỏi: chạy CP7 (Part 7 Bước 1). AI chạy agent v1/v2 trong venv tạm, chạy `load_test.py` 4 mức concurrency và 3 mức `MOCK_SLOW_RATE`, chạy `run_eval.py` cho v1, v2 và bản sau khi sửa. Mọi số trong `BENCHMARK_REPORT.md` lấy từ các file JSON trong `reports/`, đã đối chiếu tự động: không có số nào lệch.
+- AI gợi ý thêm 2 entry vào `KNOWLEDGE_BASE` cho `security-02` (JWT so với API key) và `scaling-03` (Kubernetes HPA), sau khi kiểm tra không câu nào khác trong golden dataset chứa từ khoá kích hoạt mới. Tôi kiểm tra bằng eval cuối: 23/23, 0 regression, quality gate PASS; eval v1 với baseline v2 trả exit code 1.
+- Hỏi: chạy CP8 (Part 7 Bước 2). AI dựng stack Docker, chạy Locust headless, chụp Grafana/Jaeger/Prometheus bằng trình duyệt headless, và làm thí nghiệm A–E. Thời gian tới lúc alert firing đo bằng script poll API `/api/v1/alerts`.
+- Hai lỗi phát hiện khi chạy: (1) `production/Dockerfile` làm agent crash vì Python không thấy user site → sửa bằng `ENV PYTHONUSERBASE`; (2) `docker compose run locust` tự đưa số agent về 2 replica, nên lần đo scale đầu bị sai → đo lại bằng `--no-deps` và kiểm tra số container trước/sau mỗi lần chạy. Cả hai đều ghi trong `BENCHMARK_REPORT.md`.
+- Hỏi: kiểm tra `render.yaml` trước khi deploy. AI đối chiếu với tài liệu Blueprint của Render và sửa `persistenceMode: off` thành `"off"` (YAML 1.1 hiểu `off` là boolean). Tôi tự tạo Blueprint trên Render, chạy 4 lệnh tự kiểm CP6 (200 / 200 / 401 / 200) và chụp 3 ảnh deploy. Key chỉ nhập bằng `Read-Host` trên máy tôi, không đưa vào chat hay repo.

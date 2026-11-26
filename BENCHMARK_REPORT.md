@@ -1,6 +1,6 @@
 # Benchmark & Observability Report — Day 14
 
-**Họ tên:** ...
+**Họ tên:** Vũ Ngọc Tùng
 **Ngày chạy:** 26/11/2026 (Bước 1 — develop)
 **Môi trường:** Windows 11, Python 3.12.10 (venv), agent chạy native (1 process uvicorn mỗi phiên bản), load generator chạy trên cùng máy
 
