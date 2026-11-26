@@ -111,10 +111,12 @@ Các service là `agent`, `redis`, `qdrant`, `nginx`. Agent dùng Redis cho cach
 
 ### Exercise 3.1 / 3.2: Deploy (nền tảng chính: Render)
 
-Deploy agent Part 6 trong `06-lab-complete/` bằng Blueprint `06-lab-complete/render.yaml` (web service + Key Value Redis). Chi tiết và kết quả 4 lệnh tự kiểm ở CP6: xem [DEPLOYMENT.md](DEPLOYMENT.md).
+Deploy agent Part 6 trong `06-lab-complete/` bằng Blueprint `06-lab-complete/render.yaml` (web service Docker + Key Value Redis, đều gói Free). Chi tiết: [DEPLOYMENT.md](DEPLOYMENT.md).
 
-- Public URL: _(điền sau khi deploy)_
-- `/health` → ___ · `/ready` → ___ · `/ask` không key → ___ · `/ask` có key → ___
+- Public URL: https://day14-agent-render.onrender.com
+- 4 lệnh tự kiểm CP6 (ảnh `screenshots/test.png`): `/health` → **200** · `/ready` → **200** · `/ask` không key → **401** · `/ask` có key → **200**
+- `AGENT_API_KEY` do Render sinh (`generateValue`), `REDIS_URL` lấy từ Key Value qua `fromService`; không có secret trong repo.
+- Lần đầu tạo Blueprint, Render báo `services[1] must specify IP allow list` vì đọc nhầm file mẫu `03-cloud-deployment/render/render.yaml`. Đặt **Blueprint Path** là `06-lab-complete/render.yaml` thì deploy thành công.
 
 ### So sánh `railway.toml` và `render.yaml` (nền tảng còn lại)
 
