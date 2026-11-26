@@ -127,9 +127,11 @@ railway up
 railway domain        # nhận public URL
 ```
 
-**Render:** push repo lên GitHub → Render Dashboard → New → Blueprint → chọn repo (Render đọc `render.yaml`) → điền secret → Deploy.
+**Render:** push repo lên GitHub → Render Dashboard → New → Blueprint → chọn repo và đặt **Blueprint Path** là `06-lab-complete/render.yaml` (file không nằm ở repository root) → review hai dịch vụ Free và vùng Oregon → Deploy. Blueprint tạo web service cùng Render Key Value riêng tư; `AGENT_API_KEY` được Render generate và `REDIS_URL` được nối từ Key Value.
 
-Sau khi deploy: `python check_production_ready.py --public-url <URL>` và ghi URL vào `DEPLOYMENT.md` (xem [DAY14_DELIVERY_CHECKLIST.md](../DAY14_DELIVERY_CHECKLIST.md)).
+Free web service sẽ spin down sau 15 phút không có traffic; Free Key Value chỉ có 25 MB và mất dữ liệu khi restart. Đây là cấu hình demo, không phải production workloads.
+
+Sau khi deploy: `python check_production_ready.py --public-url <URL>` và ghi URL/kết quả vào [DEPLOYMENT.md](../DEPLOYMENT.md) (xem [DAY14_DELIVERY_CHECKLIST.md](../DAY14_DELIVERY_CHECKLIST.md)).
 
 ---
 
